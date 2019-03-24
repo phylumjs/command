@@ -2,11 +2,12 @@
 'use strict';
 
 import test from 'ava';
-import { CommandSpec, formatUsage, number } from '..';
+import { CommandSpec, formatUsage } from '..';
 
 test('format usage', t => {
 	t.is(formatUsage({name: 'foo'}), '--foo <string>');
-	t.is(formatUsage({name: 'foo', type: number}), '--foo <number>');
+	t.is(formatUsage({name: 'foo', type: function bar() {}}), '--foo <bar>');
+	t.is(formatUsage({name: 'foo', type: 'number'}), '--foo <number>');
 	t.is(formatUsage({name: 'foo', alias: 'f'}), '--foo | -f <string>');
 	t.is(formatUsage({name: 'foo', alias: 'f', defaultFallback: true}), '[--foo | -f] <string>');
 	t.is(formatUsage({name: 'foo', alias: 'f', multiple: true}), '--foo | -f <...string>');
@@ -76,7 +77,7 @@ test('parse: flag', t => {
 
 test('parse: number', t => {
 	const spec = new CommandSpec([
-		{name: 'foo', type: number}
+		{name: 'foo', type: 'number'}
 	]);
 	t.deepEqual(spec.parse(['--foo', '42']), {foo: 42});
 	t.throws(() => spec.parse(['--foo', 'foo']));

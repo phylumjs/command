@@ -30,15 +30,20 @@ export interface ArgumentSpec {
 	readonly defaultFallback?: boolean;
 }
 
-export type ArgumentType = ((value: string, spec: ArgumentSpec, options: ArgumentOptions) => any) | 'flag' | 'rest';
+export type ArgumentType = ((value: string, spec: ArgumentSpec, options: ArgumentOptions) => any)
+	| 'number'
+	| 'flag'
+	| 'rest';
 
-export function number(value: string, spec: ArgumentSpec) {
-	const number = Number(value);
-	if (isNaN(number)) {
-		throw new CommandError(`Usage: ${formatUsage(spec)}`);
-	}
-	return number;
-}
+const mappedTypes = new Map<ArgumentType, ArgumentType>([
+	['number', (value, spec) => {
+		const number = Number(value);
+		if (isNaN(number)) {
+			throw new CommandError(`Usage: ${formatUsage(spec)}`);
+		}
+		return number;
+	}]
+]);
 
 export type Command = {[Name in string]: any};
 
@@ -187,8 +192,9 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 }
 
 export function parseValue(value: string, spec: ArgumentSpec, options: ArgumentOptions) {
-	if (typeof spec.type === 'function') {
-		return spec.type(value, spec, options);
+	const type = mappedTypes.get(spec.type) || spec.type;
+	if (typeof type === 'function') {
+		return type(value, spec, options);
 	}
 	return value;
 }
@@ -199,7 +205,7 @@ export function formatUsage(spec: ArgumentSpec) {
 	}
 	const nameAndAlias = `--${spec.name}${spec.alias ? ` | -${spec.alias}` : ''}`;
 	const scope = spec.defaultFallback ? `[${nameAndAlias}]` : nameAndAlias;
-	const type = typeof spec.type === 'function' ? spec.type.name : 'string';
+	const type = typeof spec.type === 'function' ? spec.type.name : (spec.type || 'string');
 	if (spec.multiple) {
 		return `${scope} <...${type}>`;
 	} else if (spec.type === 'flag') {
