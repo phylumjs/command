@@ -29,7 +29,7 @@ new CommandSpec()
 | `"--foo bar baz"` | `{foo: ['bar', 'baz']}` | `{name: 'foo', multiple: true}` |
 | `"bar baz"` | `{foo: ['bar', 'baz']}` | `{name: 'foo', multiple: true, defaultFallback: true}` |
 | `"--foo"` | `{foo: true}` | `{name: 'foo', type: 'flag'}` |
-| `"--foo 42"` | `{foo: 42}` | `{name: 'foo', type: 'number'}`
+| `"--foo 42"` | `{foo: 42}` | `{name: 'foo', type: number}`
 | `"-f bar"` | `{foo: 'bar'}` | `{name: 'foo', alias: 'f'}` |
 | `""` | `{foo: 'bar'}` | `{name: 'foo', defaultValue: 'bar'}` |
 | `-- bar --baz` | `{foo: ['bar', '--baz']}` | `{name: 'foo', type: 'rest'}` |

@@ -30,13 +30,21 @@ export interface ArgumentSpec {
 	readonly defaultFallback?: boolean;
 }
 
-export type ArgumentType = 'string' | 'number' | 'flag' | 'rest';
+export type ArgumentType = ((value: string, spec: ArgumentSpec, options: ArgumentOptions) => any) | 'flag' | 'rest';
+
+export function number(value: string, spec: ArgumentSpec) {
+	const number = Number(value);
+	if (isNaN(number)) {
+		throw new CommandError(`Usage: ${formatUsage(spec)}`);
+	}
+	return number;
+}
 
 export type Command = {[Name in string]: any};
 
 export interface ArgumentOptions {
-	readonly sparse?: boolean;
 	readonly partial?: boolean;
+	readonly sparse?: boolean;
 }
 
 export class CommandSpec implements Iterable<ArgumentSpec> {
@@ -106,7 +114,8 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 		return this._specs[Symbol.iterator]();
 	}
 
-	public parse(argv: string[], {sparse, partial}: ArgumentOptions = {}): Command {
+	public parse(argv: string[], options: ArgumentOptions = {}): Command {
+		const {partial, sparse} = options;
 		if (partial && sparse) {
 			throw new TypeError('options.partial can not be used with options.sparse');
 		}
@@ -116,11 +125,11 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 
 		const setValue = (value: string) => {
 			if (spec.multiple) {
-				(command[spec.name] || (command[spec.name] = [])).push(parseValue(value, spec.type));
+				(command[spec.name] || (command[spec.name] = [])).push(parseValue(value, spec, options));
 			} else if (spec.name in command) {
 				throw new CommandError(`Duplicate argument: ${formatUsage(spec)}`);
 			} else {
-				command[spec.name] = parseValue(value, spec.type);
+				command[spec.name] = parseValue(value, spec, options);
 				spec = sparse ? this._defaultFallback : null;
 			}
 		};
@@ -177,9 +186,9 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 	}
 }
 
-export function parseValue(value: string, type: ArgumentType) {
-	if (type === 'number') {
-		return Number(value);
+export function parseValue(value: string, spec: ArgumentSpec, options: ArgumentOptions) {
+	if (typeof spec.type === 'function') {
+		return spec.type(value, spec, options);
 	}
 	return value;
 }
@@ -190,7 +199,7 @@ export function formatUsage(spec: ArgumentSpec) {
 	}
 	const nameAndAlias = `--${spec.name}${spec.alias ? ` | -${spec.alias}` : ''}`;
 	const scope = spec.defaultFallback ? `[${nameAndAlias}]` : nameAndAlias;
-	const type = spec.type || 'string';
+	const type = typeof spec.type === 'function' ? spec.type.name : 'string';
 	if (spec.multiple) {
 		return `${scope} <...${type}>`;
 	} else if (spec.type === 'flag') {
