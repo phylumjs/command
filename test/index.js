@@ -13,6 +13,31 @@ test('format usage', t => {
 	t.is(formatUsage({name: 'foo', type: 'flag'}), '--foo');
 });
 
+test('add: assert options', t => {
+	const spec = new CommandSpec().add({name: 'foo', alias: 'f'});
+	t.throws(() => spec.add({name: 'foo'}));
+	t.throws(() => spec.add({name: 'bar', alias: 'f'}));
+	t.throws(() => spec.add({name: 'bar', type: 'flag', multiple: true}));
+	t.throws(() => spec.add({name: 'bar', type: 'flag', default: true}));
+
+	const specWithDefault = new CommandSpec().add({name: 'foo', default: true});
+	t.throws(() => specWithDefault.add({name: 'bar', default: true}));
+});
+
+test('iterable', t => {
+	const spec = new CommandSpec().add({name: 'foo'});
+	t.deepEqual(Array.from(spec), [{name: 'foo'}]);
+});
+
+test('parse: assert options', t => {
+	const spec = new CommandSpec();
+	t.throws(() => spec.parse([], {sparse: true, partial: true}));
+});
+
+test('parse: empty', t => {
+	t.deepEqual(new CommandSpec().parse([]), {});
+})
+
 test('parse: single', t => {
 	const spec = new CommandSpec([
 		{name: 'foo'}
@@ -21,8 +46,9 @@ test('parse: single', t => {
 	t.deepEqual(spec.parse(['--foo', 'bar']), {foo: 'bar'});
 	t.deepEqual(spec.parse(['--foo=bar']), {foo: 'bar'});
 	t.throws(() => spec.parse(['--foo']));
-	t.throws(() => spec.parse(['--foo']));
+	t.throws(() => spec.parse(['--bar']));
 	t.throws(() => spec.parse(['bar']));
+	t.throws(() => spec.parse(['--foo', 'bar', '--foo', 'baz']));
 });
 
 test('parse: flag', t => {
@@ -32,7 +58,16 @@ test('parse: flag', t => {
 	t.deepEqual(spec.parse([]), {});
 	t.deepEqual(spec.parse(['--foo']), {foo: true});
 	t.throws(() => spec.parse(['--foo', 'bar']));
+	t.throws(() => spec.parse(['--foo=bar']));
+	t.throws(() => spec.parse(['--foo', '--foo']));
 });
+
+test('parse: number', t => {
+	const spec = new CommandSpec([
+		{name: 'foo', type: 'number'}
+	]);
+	t.deepEqual(spec.parse(['--foo', '42']), {foo: 42});
+})
 
 test('parse: alias', t => {
 	const spec = new CommandSpec([
@@ -57,17 +92,29 @@ test('parse: default', t => {
 	]);
 	t.deepEqual(spec.parse(['--foo', 'bar']), {foo: 'bar'});
 	t.deepEqual(spec.parse(['bar']), {foo: 'bar'});
-	t.deepEqual(spec.parse(['--bar', 'bar']), {bar: true, foo: 'bar'});
 	t.throws(() => spec.parse(['bar', 'baz']));
+	t.throws(() => spec.parse(['--bar', 'foo']));
 });
 
 test('parse: default multiple', t => {
 	const spec = new CommandSpec([
-		{name: 'bar', type: 'flag'},
+		{name: 'bar'},
+		{name: 'baz', type: 'flag'},
 		{name: 'foo', default: true, multiple: true}
 	]);
-	t.deepEqual(spec.parse(['foo', '--bar', 'baz']), {foo: ['foo', 'baz'], bar: true});
-	t.deepEqual(spec.parse(['--bar', 'foo', '--foo', 'baz']), {foo: ['foo', 'baz'], bar: true});
+	t.deepEqual(spec.parse(['foo', 'bar']), {foo: ['foo', 'bar']});
+	t.throws(() => spec.parse(['foo', '--bar', 'bar', 'baz']));
+	t.throws(() => spec.parse(['foo', '--baz', 'baz']));
+});
+
+test('parse: (sparse) default multiple', t => {
+	const spec = new CommandSpec([
+		{name: 'bar'},
+		{name: 'baz', type: 'flag'},
+		{name: 'foo', default: true, multiple: true}
+	]);
+	t.deepEqual(spec.parse(['foo', '--bar', 'bar', 'baz'], {sparse: true}), {foo: ['foo', 'baz'], bar: 'bar'});
+	t.deepEqual(spec.parse(['foo', '--baz', 'baz'], {sparse: true}), {foo: ['foo', 'baz'], baz: true});
 });
 
 test('parse: default value', t => {
@@ -85,4 +132,34 @@ test('parse: multiple default value', t => {
 	t.deepEqual(spec.parse([]), {foo: ['bar']});
 	t.deepEqual(spec.parse(['--foo']), {foo: ['bar']});
 	t.deepEqual(spec.parse(['--foo', 'baz', 'bee']), {foo: ['baz', 'bee']});
+});
+
+test('partial: single', t => {
+	const spec = new CommandSpec([
+		{name: 'foo'}
+	]);
+	t.deepEqual(spec.parse([], {partial: true}), {});
+	t.deepEqual(spec.parse(['--foo', 'bar'], {partial: true}), {foo: 'bar'});
+	t.deepEqual(spec.parse(['--foo', 'bar', 'baz'], {partial: true}), {foo: 'bar'});
+	t.deepEqual(spec.parse(['--bar', '--foo', 'bar', 'baz'], {partial: true}), {foo: 'bar'});
+});
+
+test('partial: flag', t => {
+	const spec = new CommandSpec([
+		{name: 'foo', type: 'flag'}
+	]);
+	t.deepEqual(spec.parse([], {partial: true}), {});
+	t.deepEqual(spec.parse(['--foo', 'bar'], {partial: true}), {foo: true});
+	t.deepEqual(spec.parse(['--foo', 'bar', 'baz'], {partial: true}), {foo: true});
+	t.deepEqual(spec.parse(['--bar', '--foo', 'bar', 'baz'], {partial: true}), {foo: true});
+});
+
+test('partial: multiple', t => {
+	const spec = new CommandSpec([
+		{name: 'foo', multiple: true}
+	]);
+	t.deepEqual(spec.parse([], {partial: true}), {});
+	t.deepEqual(spec.parse(['--foo', 'bar', 'baz'], {partial: true}), {foo: ['bar', 'baz']});
+	t.deepEqual(spec.parse(['bee', '--foo', 'bar', 'baz'], {partial: true}), {foo: ['bar', 'baz']});
+	t.deepEqual(spec.parse(['--foo', 'bar', 'baz', '--bar', 'bee'], {partial: true}), {foo: ['bar', 'baz']});
 });

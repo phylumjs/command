@@ -29,6 +29,30 @@ new CommandSpec()
 | `"-f bar"` | `{foo: 'bar'}` | `{name: 'foo', alias: 'f'}` |
 | `""` | `{foo: 'bar'}` | `{name: 'foo', defaultValue: 'bar'}` |
 
+## Options
+
+### `options.partial`
+If specified, unknown arguments will be ignored instead of throwing an error.
+```ts
+new CommandSpec()
+	.add({name: 'foo'})
+	.parse(['--foo', 'bar', '--baz'], {partial: true});
+
+// => { foo: 'bar' }
+```
+
+### `options.sparse`
+If specified, arguments that follow others may be associated with the default argument.
+
+```ts
+new CommandSpec()
+	.add({name: 'foo', default: true})
+	.add({name: 'bar'})
+	.parse(['--bar', 'baz', 'foo'], {sparse: true});
+
+// => { bar: 'baz', foo: 'foo' }
+```
+
 <br>
 
 
