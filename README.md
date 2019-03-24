@@ -1,4 +1,8 @@
 # @phylum/command
+[![Build Status](https://travis-ci.com/phylumjs/command.svg?branch=master)](https://travis-ci.com/phylumjs/command)
+[![Coverage Status](https://coveralls.io/repos/github/phylumjs/command/badge.svg?branch=master)](https://coveralls.io/github/phylumjs/command?branch=master)
+[![Version](https://img.shields.io/npm/v/@phylum/command.svg?label=Version)![License](https://img.shields.io/npm/l/@phylum/command.svg?label=License)](https://npmjs.org/package/@phylum/command)
+
 Configurable command line parser
 
 ## Usage
