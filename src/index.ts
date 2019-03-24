@@ -177,10 +177,8 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 				throw new CommandError(`Unexpected argument: "${arg}"`);
 			}
 		}
-		if (spec) {
-			if (spec.type !== 'rest' && !spec.multiple && !(spec.name in command)) {
-				throw new CommandError(`Missing value: ${formatUsage(spec)}`);
-			}
+		if (spec && !spec.defaultFallback && spec.type !== 'rest' && !spec.multiple && !(spec.name in command)) {
+			throw new CommandError(`Missing value: ${formatUsage(spec)}`);
 		}
 		for (const spec of this._defaultValues) {
 			if (!(spec.name in command)) {

@@ -115,6 +115,7 @@ test('parse: default', t => {
 		{name: 'bar', type: 'flag'},
 		{name: 'foo', defaultFallback: true}
 	]);
+	t.deepEqual(spec.parse([]), {});
 	t.deepEqual(spec.parse(['--foo', 'bar']), {foo: 'bar'});
 	t.deepEqual(spec.parse(['bar']), {foo: 'bar'});
 	t.throws(() => spec.parse(['bar', 'baz']));
