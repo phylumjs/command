@@ -68,7 +68,21 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 	private _defaultFallback: ArgumentSpec;
 	private _rest: ArgumentSpec;
 
-	public add(spec: ArgumentSpec) {
+	public add(spec: ArgumentSpec): this {
+		// Ignore, if an equal spec exists:
+		const existing = this._names.get(spec.name);
+		if (existing) {
+			if (spec.alias === existing.alias
+				&& spec.type === existing.type
+				&& spec.defaultValue === existing.defaultValue
+				&& spec.multiple === existing.multiple
+				&& spec.defaultFallback === existing.defaultFallback) {
+				return this;
+			} else {
+				throw new TypeError(`spec.name is already used: "${spec.name}"`);
+			}
+		}
+
 		// Validate:
 		if (spec.name.length < 1) {
 			throw new TypeError(`spec.name must have at least one character.`);
@@ -84,9 +98,6 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 		}
 
 		// Test for duplicates:
-		if (this._names.has(spec.name)) {
-			throw new TypeError(`spec.name is already used: "${spec.name}"`);
-		}
 		if (spec.alias && this._aliases.has(spec.alias)) {
 			throw new TypeError(`spec.alias is already used: "${spec.alias}"`);
 		}

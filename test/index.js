@@ -15,6 +15,14 @@ test('format usage', t => {
 	t.is(formatUsage({name: 'foo', type: 'rest'}), '-- <...>');
 });
 
+test('add: ignore', t => {
+	new CommandSpec()
+		.add({name: 'foo'})
+		.add({name: 'foo'});
+
+	t.pass();
+});
+
 test('add: validate', t => {
 	t.throws(() => new CommandSpec().add({name: 'bar', type: 'flag', multiple: true}));
 	t.throws(() => new CommandSpec().add({name: 'bar', type: 'flag', defaultFallback: true}));
