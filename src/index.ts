@@ -152,25 +152,48 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 
 		for (let i = 0; i < argv.length; i++) {
 			const arg = argv[i];
-			const token = /^(?:--([^=]+)|-([^=\-]))(?:=(.*))?/.exec(arg);
+			const token = /^(?:--([^=]+)(?:=(.*))?|-([^=\-]+))$/.exec(arg);
 			if (token) {
-				const [, name, alias, value] = token;
-				spec = name ? this._names.get(name) : this._aliases.get(alias);
-				if (spec && spec.type !== 'rest') {
-					if (spec.type === 'flag') {
-						if (value) {
-							throw new CommandError(`Flags must not have a value: ${formatUsage(spec)}`);
-						} else if (spec.name in command) {
-							throw new CommandError(`Duplicate flag: ${formatUsage(spec)}`);
-						} else {
-							command[spec.name] = true;
-							spec = sparse ? this._defaultFallback : null;
+				const [, name, value, aliases] = token;
+				if (name) {
+					spec = this._names.get(name);
+					if (spec && spec.type !== 'rest') {
+						if (spec.type === 'flag') {
+							if (value) {
+								throw new CommandError(`Flags must not have a value: ${formatUsage(spec)}`);
+							} else if (spec.name in command) {
+								throw new CommandError(`Duplcate flag: ${formatUsage(spec)}`);
+							} else {
+								command[spec.name] = true;
+								spec = sparse ? this._defaultFallback : null;
+							}
+						} else if (value) {
+							setValue(value);
 						}
-					} else if (value) {
-						setValue(value);
+					} else if (!partial) {
+						throw new CommandError(`Unknown argument: "${arg}"`);
 					}
-				} else if (!partial) {
-					throw new CommandError(`Unknown argument: "${arg}"`);
+				} else {
+					for (const alias of aliases) {
+						spec = this._aliases.get(alias);
+						if (spec && spec.type !== 'rest') {
+							if (spec.type === 'flag') {
+								if (spec.name in command) {
+									throw new CommandError(`Duplicate flag: ${formatUsage(spec)}`);
+								} else {
+									command[spec.name] = true;
+									spec = sparse ? this._defaultFallback : null;
+								}
+							} else if (aliases.length > 1) {
+								throw new CommandError(`Only flag aliases can be combined: ${formatUsage(spec)}`);
+							}
+						} else if (!partial) {
+							throw new CommandError(`Unknown argument: "${arg}"`);
+						}
+					}
+					if (aliases.length > 1) {
+						spec = sparse ? this._defaultFallback : null;
+					}
 				}
 			} else if (arg === '--') {
 				spec = this._rest;
@@ -182,7 +205,7 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 				} else {
 					throw new CommandError(`Unexpected rest arguments.`);
 				}
-			} else if (spec) {
+			} else if (spec && spec.type !== 'rest') {
 				setValue(arg);
 			} else if (!partial) {
 				throw new CommandError(`Unexpected argument: "${arg}"`);

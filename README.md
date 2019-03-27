@@ -5,7 +5,11 @@
 
 Configurable command line parser
 
-## Usage
+<br>
+
+
+
+# Usage
 ```bash
 npm i @phylum/command
 ```
@@ -21,7 +25,7 @@ new CommandSpec()
 // => { foo: ['bar', 'baz'], bar: true }
 ```
 
-### Command line format
+## Command Line Format
 | Format | Output | Spec |
 |-|-|-|
 | `"--foo bar"` | `{foo: 'bar'}` | `{name: 'foo'}` |
@@ -31,6 +35,7 @@ new CommandSpec()
 | `"--foo"` | `{foo: true}` | `{name: 'foo', type: 'flag'}` |
 | `"--foo 42"` | `{foo: 42}` | `{name: 'foo', type: 'number'}`
 | `"-f bar"` | `{foo: 'bar'}` | `{name: 'foo', alias: 'f'}` |
+| `"-fb"` | `{foo: true, bar: true}` | `{name: 'foo', alias: 'f', type: 'flag'}, {name: 'bar', alias: 'b', type: 'flag'}` |
 | `""` | `{foo: 'bar'}` | `{name: 'foo', defaultValue: 'bar'}` |
 | `-- bar --baz` | `{foo: ['bar', '--baz']}` | `{name: 'foo', type: 'rest'}` |
 
