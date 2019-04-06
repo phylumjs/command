@@ -1,8 +1,6 @@
-// @ts-check
-'use strict';
 
 import test from 'ava';
-import { CommandSpec, formatUsage } from '..';
+import { CommandSpec, formatUsage } from '../src';
 
 test('format usage', t => {
 	t.is(formatUsage({name: 'foo'}), '--foo <string>');
