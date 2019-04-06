@@ -5,20 +5,13 @@ import { CommandSpec, formatUsage } from '../src';
 test('format usage', t => {
 	t.is(formatUsage({name: 'foo'}), '--foo <string>');
 	t.is(formatUsage({name: 'foo', type: function bar() {}}), '--foo <bar>');
+	t.is(formatUsage({name: 'foo', type: Object.assign(() => {}, {displayName: 'bar'})}), '--foo <bar>');
 	t.is(formatUsage({name: 'foo', type: 'number'}), '--foo <number>');
 	t.is(formatUsage({name: 'foo', alias: 'f'}), '--foo | -f <string>');
 	t.is(formatUsage({name: 'foo', alias: 'f', defaultFallback: true}), '[--foo | -f] <string>');
 	t.is(formatUsage({name: 'foo', alias: 'f', multiple: true}), '--foo | -f <...string>');
 	t.is(formatUsage({name: 'foo', type: 'flag'}), '--foo');
 	t.is(formatUsage({name: 'foo', type: 'rest'}), '-- <...>');
-});
-
-test('add: ignore', t => {
-	new CommandSpec()
-		.add({name: 'foo'})
-		.add({name: 'foo'});
-
-	t.pass();
 });
 
 test('add: validate', t => {

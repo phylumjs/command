@@ -17,7 +17,7 @@ export interface ArgumentSpec {
 	/**
 	 * The default value.
 	 */
-	readonly defaultValue?: string | number | boolean;
+	readonly defaultValue?: any;
 	/**
 	 * If set, multiple values are allowed.
 	 * Can not be used with type "flag" or "rest".
@@ -30,10 +30,9 @@ export interface ArgumentSpec {
 	readonly defaultFallback?: boolean;
 }
 
-export type ArgumentType = ((value: string, spec: ArgumentSpec, options: ArgumentOptions) => any)
-	| 'number'
-	| 'flag'
-	| 'rest';
+export type ArgumentTypeFn = ((value: string, spec: ArgumentSpec, options: ArgumentOptions) => any) & {displayName?: string};
+
+export type ArgumentType = ArgumentTypeFn | 'number' | 'flag' | 'rest';
 
 const mappedTypes = new Map<ArgumentType, ArgumentType>([
 	['number', (value, spec) => {
@@ -69,20 +68,6 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 	private _rest: ArgumentSpec;
 
 	public add(spec: ArgumentSpec): this {
-		// Ignore, if an equal spec exists:
-		const existing = this._names.get(spec.name);
-		if (existing) {
-			if (spec.alias === existing.alias
-				&& spec.type === existing.type
-				&& spec.defaultValue === existing.defaultValue
-				&& spec.multiple === existing.multiple
-				&& spec.defaultFallback === existing.defaultFallback) {
-				return this;
-			} else {
-				throw new TypeError(`spec.name is already used: "${spec.name}"`);
-			}
-		}
-
 		// Validate:
 		if (spec.name.length < 1) {
 			throw new TypeError(`spec.name must have at least one character.`);
@@ -98,6 +83,9 @@ export class CommandSpec implements Iterable<ArgumentSpec> {
 		}
 
 		// Test for duplicates:
+		if (this._names.has(spec.name)) {
+			throw new TypeError(`spec.name is already used: "${spec.name}"`);
+		}
 		if (spec.alias && this._aliases.has(spec.alias)) {
 			throw new TypeError(`spec.alias is already used: "${spec.alias}"`);
 		}
@@ -237,7 +225,7 @@ export function formatUsage(spec: ArgumentSpec) {
 	}
 	const nameAndAlias = `--${spec.name}${spec.alias ? ` | -${spec.alias}` : ''}`;
 	const scope = spec.defaultFallback ? `[${nameAndAlias}]` : nameAndAlias;
-	const type = typeof spec.type === 'function' ? spec.type.name : (spec.type || 'string');
+	const type = typeof spec.type === 'function' ? (spec.type.displayName || spec.type.name) : (spec.type || 'string');
 	if (spec.multiple) {
 		return `${scope} <...${type}>`;
 	} else if (spec.type === 'flag') {
